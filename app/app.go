@@ -16,7 +16,7 @@ type App struct {
 func (app *App) SetupRouter() {
 	app.Router.
 		Methods("GET").
-		Path("/words").
+		Path("/api/words").
 		HandlerFunc(app.getWords)
 }
 
