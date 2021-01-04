@@ -18,6 +18,10 @@ func (app *App) SetupRouter() {
 		Methods("GET").
 		Path("/api/words").
 		HandlerFunc(app.getWords)
+	app.Router.
+		Methods("POST").
+		Path("/api/addWord").
+		HandlerFunc(app.addWord)
 }
 
 func (app *App) getWords(w http.ResponseWriter, r *http.Request) {
@@ -38,4 +42,20 @@ func (app *App) getWords(w http.ResponseWriter, r *http.Request) {
 		words = append(words, word)
 	}
 	json.NewEncoder(w).Encode(words)
+}
+
+func (app *App) addWord(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method == "POST" {
+		uuid := r.FormValue("uuid")
+		word := r.FormValue("word")
+		translatedWord := r.FormValue("translated_word")
+		createdDate := r.FormValue("created_date")
+		insForm, err := app.Database.Prepare("INSERT INTO `words` (uuid, word, translated_word, created_date) VALUES (?,?,?,?)")
+		if err != nil {
+			panic(err.Error())
+		}
+		insForm.Exec(uuid, word, translatedWord, createdDate)
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
