@@ -22,6 +22,10 @@ func (app *App) SetupRouter() {
 		Methods("POST").
 		Path("/api/addWord").
 		HandlerFunc(app.addWord)
+	app.Router.
+		Methods("DELETE").
+		Path("/api/deleteWord").
+		HandlerFunc(app.deleteWord)
 }
 
 func (app *App) getWords(w http.ResponseWriter, r *http.Request) {
@@ -47,15 +51,21 @@ func (app *App) getWords(w http.ResponseWriter, r *http.Request) {
 func (app *App) addWord(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method == "POST" {
-		uuid := r.FormValue("uuid")
-		word := r.FormValue("word")
-		translatedWord := r.FormValue("translated_word")
-		createdDate := r.FormValue("created_date")
+		var word WordModel
+
+		err := json.NewDecoder(r.Body).Decode(&word)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		insForm, err := app.Database.Prepare("INSERT INTO `words` (uuid, word, translated_word, created_date) VALUES (?,?,?,?)")
 		if err != nil {
 			panic(err.Error())
 		}
-		insForm.Exec(uuid, word, translatedWord, createdDate)
+		insForm.Exec(word.UUID, word.Word, word.TranslatedWord, word.CreatedDate)
 		w.WriteHeader(http.StatusNoContent)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
 	}
 }
