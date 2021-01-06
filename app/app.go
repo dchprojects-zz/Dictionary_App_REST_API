@@ -73,12 +73,16 @@ func (app *App) addWord(w http.ResponseWriter, r *http.Request) {
 func (app *App) deleteWord(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method == "DELETE" {
-		uuid := r.URL.Query().Get("uuid")
+		var deleteWord DeleteWordModel
+		err := json.NewDecoder(r.Body).Decode(&deleteWord)
+		if err != nil {
+			panic(err.Error())
+		}
 		delForm, err := app.Database.Prepare("DELETE FROM `words` WHERE uuid = ?")
 		if err != nil {
 			panic(err.Error())
 		}
-		delForm.Exec(uuid)
+		delForm.Exec(deleteWord.UUID)
 		w.WriteHeader(http.StatusNoContent)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
