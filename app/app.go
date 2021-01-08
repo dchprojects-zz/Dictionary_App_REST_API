@@ -36,8 +36,9 @@ func (app *App) getWords(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method == "GET" {
 		var words []WordModel
-
-		result, err := app.Database.Query("SELECT id, uuid, word, translated_word, created_date FROM `words`")
+		limit := r.URL.Query().Get("limit")
+		offset := r.URL.Query().Get("offset")
+		result, err := app.Database.Query("SELECT id, uuid, word, translated_word, created_date FROM `words`" + " LIMIT " + limit + " OFFSET " + offset)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
