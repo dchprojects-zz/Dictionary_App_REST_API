@@ -1,121 +1,75 @@
 package app
 
 import (
-	"database/sql"
-	"encoding/json"
+	"fmt"
+	"goproj/app/handler"
+	"goproj/config"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
 type App struct {
-	Router   *mux.Router
-	Database *sql.DB
+	Router *mux.Router
+	DB     *gorm.DB
 }
 
-func (app *App) SetupRouter() {
-	app.Router.
-		Methods("GET").
-		Path("/api/words").
-		HandlerFunc(app.getWords)
-	app.Router.
-		Methods("POST").
-		Path("/api/addWord").
-		HandlerFunc(app.addWord)
-	app.Router.
-		Methods("PUT").
-		Path("/api/updateWord").
-		HandlerFunc(app.updateWord)
-	app.Router.
-		Methods("DELETE").
-		Path("/api/deleteWord").
-		HandlerFunc(app.deleteWord)
-}
+// Initialize initializes the app with predefined configuration
+func (a *App) Initialize(config *config.Config) {
+	dbURI := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True",
+		config.DB.Username,
+		config.DB.Password,
+		config.DB.Host,
+		config.DB.Port,
+		config.DB.Name,
+		config.DB.Charset)
 
-func (app *App) getWords(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if r.Method == "GET" {
-		var words []WordModel
-		limit := r.URL.Query().Get("limit")
-		offset := r.URL.Query().Get("offset")
-		result, err := app.Database.Query("SELECT id, uuid, word, translated_word, created_date FROM `words`" + " LIMIT " + limit + " OFFSET " + offset)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-		defer result.Close()
-		for result.Next() {
-			var word WordModel
-			err := result.Scan(&word.ID, &word.UUID, &word.Word, &word.TranslatedWord, &word.CreatedDate)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-			}
-			words = append(words, word)
-		}
-		json.NewEncoder(w).Encode(words)
-	} else {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	db, err := gorm.Open(config.DB.Dialect, dbURI)
+	if err != nil {
+		log.Fatal("Could not connect database")
 	}
+
+	a.DB = db
+	a.Router = mux.NewRouter()
+	a.setRouters()
 }
 
-func (app *App) updateWord(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if r.Method == "PUT" {
-		var updateWord UpdateWordModel
-
-		err := json.NewDecoder(r.Body).Decode(&updateWord)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-
-		updForm, err := app.Database.Prepare("UPDATE `words` SET word = ?, translated_word = ? WHERE uuid = ?")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-
-		updForm.Exec(updateWord.Word, updateWord.TranslatedWord, updateWord.UUID)
-		w.WriteHeader(http.StatusNoContent)
-	} else {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
+func (a *App) setRouters() {
+	// Routing for handling the words
+	a.Get("/api/words", a.handleRequest(handler.GetAllWords))
 }
 
-func (app *App) addWord(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if r.Method == "POST" {
-		var word WordModel
-
-		err := json.NewDecoder(r.Body).Decode(&word)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		insForm, err := app.Database.Prepare("INSERT INTO `words` (uuid, word, translated_word, created_date) VALUES (?,?,?,?)")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-		insForm.Exec(word.UUID, word.Word, word.TranslatedWord, word.CreatedDate)
-		w.WriteHeader(http.StatusNoContent)
-	} else {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
+// Get wraps the router for GET method
+func (a *App) Get(path string, f func(w http.ResponseWriter, r *http.Request)) {
+	a.Router.HandleFunc(path, f).Methods("GET")
 }
 
-func (app *App) deleteWord(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if r.Method == "DELETE" {
-		var deleteWord DeleteWordModel
-		err := json.NewDecoder(r.Body).Decode(&deleteWord)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-		delForm, err := app.Database.Prepare("DELETE FROM `words` WHERE uuid = ?")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-		delForm.Exec(deleteWord.UUID)
-		w.WriteHeader(http.StatusNoContent)
-	} else {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+// Post wraps the router for POST method
+func (a *App) Post(path string, f func(w http.ResponseWriter, r *http.Request)) {
+	a.Router.HandleFunc(path, f).Methods("POST")
+}
+
+// Put wraps the router for PUT method
+func (a *App) Put(path string, f func(w http.ResponseWriter, r *http.Request)) {
+	a.Router.HandleFunc(path, f).Methods("PUT")
+}
+
+// Delete wraps the router for DELETE method
+func (a *App) Delete(path string, f func(w http.ResponseWriter, r *http.Request)) {
+	a.Router.HandleFunc(path, f).Methods("DELETE")
+}
+
+// Run the app on it's router
+func (a *App) Run(host string) {
+	log.Fatal(http.ListenAndServe(host, a.Router))
+}
+
+type RequestHandlerFunction func(db *gorm.DB, w http.ResponseWriter, r *http.Request)
+
+func (a *App) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handler(a.DB, w, r)
 	}
 }
