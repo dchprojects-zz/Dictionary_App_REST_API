@@ -37,6 +37,9 @@ func (a *App) Initialize(config *config.Config) {
 }
 
 func (a *App) setRouters() {
+	// Routing for handling the users
+	a.Get("/api/users", a.handleRequest(handler.GetAllUsers))
+
 	// Routing for handling the words
 	a.Get("/api/words", a.handleRequest(handler.GetAllWords))
 }

@@ -1,20 +1,28 @@
 package model
 
+type User struct {
+	ID        int    `json:"id"`
+	USER_NAME string `json:"user_name"`
+}
+
 type Word struct {
-	UUID            string `json:"uuid"`
-	Word            string `json:"word"`
-	WordDescription string `json:"word_description"`
-	WordLanguage    string `json:"word_language"`
-	CreatedAt       string `json:"created_at"`
-	UpdatedAt       string `json:"updated_at"`
+	USER_ID          int    `json:"user_id"`
+	ID               int    `json:"id"`
+	Word             string `json:"word"`
+	Word_Description string `json:"word_description"`
+	Word_Language    string `json:"word_language"`
+	Created_At       string `json:"created_at"`
+	Updated_At       string `json:"updated_at"`
 }
 
 type DeleteWord struct {
-	UUID string `json:"uuid"`
+	USER_ID int `json:"user_id"`
+	ID      int `json:"id"`
 }
 
 type UpdateWord struct {
-	UUID            string `json:"uuid"`
-	Word            string `json:"word"`
-	WordDescription string `json:"word_description"`
+	USER_ID          int    `json:"user_id"`
+	ID               int    `json:"id"`
+	Word             string `json:"word"`
+	Word_Description string `json:"word_description"`
 }
