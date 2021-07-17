@@ -1,8 +1,8 @@
 package model
 
 type User struct {
-	ID        int    `json:"id"`
-	USER_NAME string `json:"user_name"`
+	ID       int    `json:"id"`
+	USERNAME string `json:"username"`
 }
 
 type Word struct {
