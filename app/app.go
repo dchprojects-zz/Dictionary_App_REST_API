@@ -1,32 +1,24 @@
 package app
 
 import (
-	"fmt"
+	"database/sql"
 	"goproj/app/handler"
 	"goproj/config"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 )
 
 type App struct {
 	Router *mux.Router
-	DB     *gorm.DB
+	DB     *sql.DB
 }
 
 // Initialize initializes the app with predefined configuration
 func (a *App) Initialize(config *config.Config) {
-	dbURI := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True",
-		config.DB.Username,
-		config.DB.Password,
-		config.DB.Host,
-		config.DB.Port,
-		config.DB.Name,
-		config.DB.Charset)
 
-	db, err := gorm.Open(config.DB.Dialect, dbURI)
+	db, err := sql.Open(config.DB.Dialect, "d9d9vs9:Vagina$2020@tcp(localhost:3306)/dbword")
 	if err != nil {
 		log.Fatal("Could not connect database")
 	}
@@ -69,7 +61,7 @@ func (a *App) Run(host string) {
 	log.Fatal(http.ListenAndServe(host, a.Router))
 }
 
-type RequestHandlerFunction func(db *gorm.DB, w http.ResponseWriter, r *http.Request)
+type RequestHandlerFunction func(db *sql.DB, w http.ResponseWriter, r *http.Request)
 
 func (a *App) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
