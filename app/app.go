@@ -2,6 +2,7 @@ package app
 
 import (
 	"database/sql"
+	"fmt"
 	"goproj/app/handler"
 	"goproj/config"
 	"log"
@@ -18,7 +19,13 @@ type App struct {
 // Initialize initializes the app with predefined configuration
 func (a *App) Initialize(config *config.Config) {
 
-	db, err := sql.Open(config.DB.Dialect, "d9d9vs9:Vagina$2020@tcp(localhost:3306)/dbword")
+	dbURI := fmt.Sprintf("%s:%s@/%s?charset=%s&parseTime=True",
+		config.DB.Username,
+		config.DB.Password,
+		config.DB.Name,
+		config.DB.Charset)
+
+	db, err := sql.Open(config.DB.Dialect, dbURI)
 	if err != nil {
 		log.Fatal("Could not connect database")
 	}
